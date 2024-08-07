@@ -2,22 +2,22 @@
   Copyright(C)2023 Hesai Technology Co., Ltd.
   All code in this repository is released under the terms of the following [Modified BSD License.]
   Modified BSD License:
-  Redistribution and use in source and binary forms,with or without modification,are permitted 
+  Redistribution and use in source and binary forms,with or without modification,are permitted
   provided that the following conditions are met:
-  *Redistributions of source code must retain the above copyright notice,this list of conditions 
+  *Redistributions of source code must retain the above copyright notice,this list of conditions
    and the following disclaimer.
-  *Redistributions in binary form must reproduce the above copyright notice,this list of conditions and 
+  *Redistributions in binary form must reproduce the above copyright notice,this list of conditions and
    the following disclaimer in the documentation and/or other materials provided with the distribution.
-  *Neither the names of the University of Texas at Austin,nor Austin Robot Technology,nor the names of 
-   other contributors maybe used to endorse or promote products derived from this software without 
+  *Neither the names of the University of Texas at Austin,nor Austin Robot Technology,nor the names of
+   other contributors maybe used to endorse or promote products derived from this software without
    specific prior written permission.
-  THIS SOFTWARE IS PROVIDED BY THE COPYRIGH THOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED 
-  WARRANTIES,INCLUDING,BUT NOT LIMITED TO,THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-  PARTICULAR PURPOSE ARE DISCLAIMED.IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR 
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGH THOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+  WARRANTIES,INCLUDING,BUT NOT LIMITED TO,THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+  PARTICULAR PURPOSE ARE DISCLAIMED.IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
   ANY DIRECT,INDIRECT,INCIDENTAL,SPECIAL,EXEMPLARY,OR CONSEQUENTIAL DAMAGES(INCLUDING,BUT NOT LIMITED TO,
-  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;LOSS OF USE,DATA,OR PROFITS;OR BUSINESS INTERRUPTION)HOWEVER 
-  CAUSED AND ON ANY THEORY OF LIABILITY,WHETHER IN CONTRACT,STRICT LIABILITY,OR TORT(INCLUDING NEGLIGENCE 
-  OR OTHERWISE)ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,EVEN IF ADVISED OF THE POSSIBILITY OF 
+  PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;LOSS OF USE,DATA,OR PROFITS;OR BUSINESS INTERRUPTION)HOWEVER
+  CAUSED AND ON ANY THEORY OF LIABILITY,WHETHER IN CONTRACT,STRICT LIABILITY,OR TORT(INCLUDING NEGLIGENCE
+  OR OTHERWISE)ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,EVEN IF ADVISED OF THE POSSIBILITY OF
   SUCHDAMAGE.
 ************************************************************************************************/
 
@@ -79,7 +79,7 @@ protected:
   void SendPacketLoss(const uint32_t& total_packet_count, const uint32_t& total_packet_loss_count);
   // Used to publish the Packet loss condition
   void SendPTP(const uint8_t& ptp_lock_offset, const u8Array_t& ptp_status);
-  // Used to publish the firetime correction 
+  // Used to publish the firetime correction
   void SendFiretime(const double *firetime_correction_);
   // Used to publish the imu packet
   void SendImuConfig(const LidarImuData& msg);
@@ -126,10 +126,7 @@ inline void SourceDriver::Init(const YAML::Node& config)
 
   node_ptr_.reset(new rclcpp::Node("hesai_ros_driver_node"));
   if (driver_param.input_param.send_point_cloud_ros) {
-    pub_ = node_ptr_->create_publisher<sensor_msgs::msg::PointCloud2>(driver_param.input_param.ros_send_point_topic, 10);
-  }
-  if (driver_param.input_param.send_imu_ros) {
-    imu_pub_ = node_ptr_->create_publisher<sensor_msgs::msg::Imu>(driver_param.input_param.ros_send_imu_topic, 10);
+    pub_ = node_ptr_->create_publisher<sensor_msgs::msg::PointCloud2>(driver_param.input_param.ros_send_point_topic, rclcpp::SensorDataQoS());
   }
 
   if (driver_param.input_param.ros_send_packet_loss_topic != NULL_TOPIC) {
@@ -148,7 +145,7 @@ inline void SourceDriver::Init(const YAML::Node& config)
   if (! driver_param.input_param.firetimes_path.empty() ) {
     if (driver_param.input_param.ros_send_firetime_topic != NULL_TOPIC) {
       firetime_pub_ = node_ptr_->create_publisher<hesai_ros_driver::msg::Firetime>(driver_param.input_param.ros_send_firetime_topic, 10);
-    } 
+    }
   }
 
   if (driver_param.input_param.send_packet_ros) {
@@ -156,10 +153,10 @@ inline void SourceDriver::Init(const YAML::Node& config)
   }
 
   if (driver_param.input_param.source_type == DATA_FROM_ROS_PACKET) {
-    pkt_sub_ = node_ptr_->create_subscription<hesai_ros_driver::msg::UdpFrame>(driver_param.input_param.ros_recv_packet_topic, 10, 
+    pkt_sub_ = node_ptr_->create_subscription<hesai_ros_driver::msg::UdpFrame>(driver_param.input_param.ros_recv_packet_topic, 10,
                               std::bind(&SourceDriver::ReceivePacket, this, std::placeholders::_1));
-    if (driver_param.input_param.ros_recv_correction_topic != NULL_TOPIC) {    
-      crt_sub_ = node_ptr_->create_subscription<std_msgs::msg::UInt8MultiArray>(driver_param.input_param.ros_recv_correction_topic, 10, 
+    if (driver_param.input_param.ros_recv_correction_topic != NULL_TOPIC) {
+      crt_sub_ = node_ptr_->create_subscription<std_msgs::msg::UInt8MultiArray>(driver_param.input_param.ros_recv_correction_topic, 10,
                               std::bind(&SourceDriver::ReceiveCorrection, this, std::placeholders::_1));
     }
     driver_param.decoder_param.enable_udp_thread = false;
@@ -168,9 +165,9 @@ inline void SourceDriver::Init(const YAML::Node& config)
   driver_ptr_.reset(new HesaiLidarSdk<LidarPointXYZIRT>());
   driver_param.decoder_param.enable_parser_thread = true;
   if (driver_param.input_param.send_point_cloud_ros) {
-    driver_ptr_->RegRecvCallback([this](const hesai::lidar::LidarDecodedFrame<hesai::lidar::LidarPointXYZIRT>& frame) {  
-      this->SendPointCloud(frame);  
-    });  
+    driver_ptr_->RegRecvCallback([this](const hesai::lidar::LidarDecodedFrame<hesai::lidar::LidarPointXYZIRT>& frame) {
+      this->SendPointCloud(frame);
+    });
   }
   if (driver_param.input_param.send_imu_ros) {
     driver_ptr_->RegRecvCallback(std::bind(&SourceDriver::SendImuConfig, this, std::placeholders::_1));
@@ -188,7 +185,7 @@ inline void SourceDriver::Init(const YAML::Node& config)
     if (driver_param.input_param.ros_send_ptp_topic != NULL_TOPIC) {
       driver_ptr_->RegRecvCallback(std::bind(&SourceDriver::SendPTP, this, std::placeholders::_1, std::placeholders::_2));
     }
-  } 
+  }
   if (!driver_ptr_->Init(driver_param))
   {
     std::cout << "Driver Initialize Error...." << std::endl;
@@ -259,8 +256,8 @@ inline sensor_msgs::msg::PointCloud2 SourceDriver::ToRosMsg(const LidarDecodedFr
   int fields = 6;
   ros_msg.fields.clear();
   ros_msg.fields.reserve(fields);
-  ros_msg.width = points_number; 
-  ros_msg.height = 1; 
+  ros_msg.width = points_number;
+  ros_msg.height = 1;
 
   int offset = 0;
   offset = addPointField(ros_msg, "x", 1, sensor_msgs::msg::PointField::FLOAT32, offset);
@@ -295,7 +292,7 @@ inline sensor_msgs::msg::PointCloud2 SourceDriver::ToRosMsg(const LidarDecodedFr
     ++iter_z_;
     ++iter_intensity_;
     ++iter_ring_;
-    ++iter_timestamp_;   
+    ++iter_timestamp_;
   }
   // printf("HesaiLidar Runing Status [standby mode:%u]  |  [speed:%u]\n", frame.work_mode, frame.spin_speed);
   printf("%s frame:%d points:%u packet:%d start time:%lf end time:%lf\n", prefix, frame_index, points_number, packet_number, frame_start_timestamp, frame_end_timestamp) ;
@@ -342,7 +339,7 @@ inline hesai_ros_driver::msg::LossPacket SourceDriver::ToRosMsg(const uint32_t& 
 {
   hesai_ros_driver::msg::LossPacket msg;
   msg.total_packet_count = total_packet_count;
-  msg.total_packet_loss_count = total_packet_loss_count;  
+  msg.total_packet_loss_count = total_packet_loss_count;
   return msg;
 }
 
