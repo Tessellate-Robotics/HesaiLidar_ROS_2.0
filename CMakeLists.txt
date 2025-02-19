@@ -186,21 +186,10 @@ set(LIB_TARGETS
     udpParser_lib
     )
 
-if(${CUDA_FOUND})
-  add_executable(hesai_ros_driver_component
-    node/hesai_ros_driver_component.cu
-    src/manager/node_manager.cc
-    )
-  set(LIB_TARGETS
-    ${LIB_TARGETS}
-    udpParserGpu_lib
-    )
-else()
-  add_executable(hesai_ros_driver_component
-    node/hesai_ros_driver_component.cc
-    src/manager/node_manager.cc
-    )
-endif()
+add_library(hesai_ros_driver_component SHARED
+  node/hesai_ros_driver_node.cc
+  src/manager/node_manager.cc
+  )
 target_link_libraries(hesai_ros_driver_component
             ${YAML_CPP_LIBRARIES}
             ${Boost_LIBRARIES}
@@ -209,7 +198,7 @@ target_link_libraries(hesai_ros_driver_component
 rclcpp_components_register_node(
   hesai_ros_driver_component
   PLUGIN "SourceDriver"
-  EXECUTABLE hesai_ros_driver_component
+  EXECUTABLE hesai_ros_driver_node
 )
 
 target_include_directories(hesai_ros_driver_component PRIVATE
