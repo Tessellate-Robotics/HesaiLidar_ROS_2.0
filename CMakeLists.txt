@@ -153,77 +153,35 @@ find_package(Boost REQUIRED COMPONENTS thread)
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
-# if install different cuda version, set the cuda path, like cuda-11.4
-# set(CUDA_TOOLKIT_ROOT_DIR /usr/local/cuda-11.4/)
-# find_package(CUDA REQUIRED)
-find_package(CUDA )
+add_library(hesai_ros_driver_component SHARED
+  node/hesai_ros_driver_node.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Source/src/source.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Source/src/socket_source.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Source/src/pcap_source.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Source/src/pcap_saver.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Container/src/ring_2d_shared.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Container/src/ring_2dex.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcClient/src/ptc_client.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcClient/src/tcp_client.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcClient/src/tcp_ssl_client.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcParser/src/general_ptc_parser.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcParser/src/ptc_1_0_parser.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcParser/src/ptc_2_0_parser.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcParser/ptc_parser.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Logger/src/logger.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/src/plat_utils.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/src/auto_tick_count.cc
+)
+target_link_libraries(hesai_ros_driver_component
+  ${YAML_CPP_LIBRARIES}
+)
+rclcpp_components_register_node(
+  hesai_ros_driver_component
+  PLUGIN "SourceDriver"
+  EXECUTABLE hesai_ros_driver_node
+)
 
-if(CUDA_FOUND)
-  
-  message(=============================================================)
-  message("-- CUDA Found. CUDA Support is turned On.")
-  message(=============================================================)
-
-  link_directories($ENV{CUDA_PATH}/lib/x64)
-  set(CUDA_NVCC_FLAGS "-arch=sm_75;-O2")#根据具体GPU性能更改算力参数
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -rdc=true")
-  list(APPEND CUDA_NVCC_FLAGS -Xcompiler -fPIC)
-
-  CUDA_ADD_EXECUTABLE(hesai_ros_driver_node
-                node/hesai_ros_driver_node.cu
-                src/manager/node_manager.cu
-                ./src/driver/HesaiLidar_SDK_2.0/libhesai/UdpParserGpu/src/buffer.cu
-                )
-  set(CUDA_LIBS "${CUDA_TOOLKIT_ROOT_DIR}/lib64/libcudart.so")
-
-  target_link_libraries(hesai_ros_driver_node                   
-                ${YAML_CPP_LIBRARIES}
-                ${Boost_LIBRARIES}
-                source_lib
-                container_lib
-                ptcClient_lib
-                ptcParser_lib
-                log_lib
-                ${CUDA_LIBS}
-                # libhesai
-    )
-else(CUDA_FOUND)
-
-  message(=============================================================)
-  message("-- CUDA Not Found. CUDA Support is turned Off.")
-  message(=============================================================)
-  add_library(hesai_ros_driver_component SHARED
-    node/hesai_ros_driver_node.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/Source/src/source.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/Source/src/socket_source.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/Source/src/pcap_source.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/Source/src/pcap_saver.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/Container/src/ring_2d_shared.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/Container/src/ring_2dex.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/PtcClient/src/ptc_client.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/PtcClient/src/tcp_client.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/PtcClient/src/tcp_ssl_client.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/PtcParser/src/general_ptc_parser.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/PtcParser/src/ptc_1_0_parser.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/PtcParser/src/ptc_2_0_parser.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/PtcParser/ptc_parser.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/Logger/src/logger.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/src/plat_utils.cc
-    src/driver/HesaiLidar_SDK_2.0/libhesai/src/auto_tick_count.cc
-  )
-  target_link_libraries(hesai_ros_driver_component
-    ${YAML_CPP_LIBRARIES}
-  )
-  rclcpp_components_register_node(
-    hesai_ros_driver_component
-    PLUGIN "SourceDriver"
-    EXECUTABLE hesai_ros_driver_node
-  )
-
-endif(CUDA_FOUND)
-
-
-  target_include_directories(hesai_ros_driver_component PRIVATE
+target_include_directories(hesai_ros_driver_component PRIVATE
   src/driver/HesaiLidar_SDK_2.0/
   src/driver/HesaiLidar_SDK_2.0/libhesai
   src/driver/HesaiLidar_SDK_2.0/libhesai/Lidar
