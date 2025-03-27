@@ -1,0 +1,3 @@
+[submodule "src/driver/HesaiLidar_SDK_2.0"]
+	path = src/driver/HesaiLidar_SDK_2.0
+	url = git@github.com:Tessellate-Robotics/HesaiLidar_SDK_2.0.git
