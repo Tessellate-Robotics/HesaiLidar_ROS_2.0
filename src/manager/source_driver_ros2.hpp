@@ -109,9 +109,9 @@ protected:
 };
 inline SourceDriver::SourceDriver(const rclcpp::NodeOptions & options) : Node("hesai_ros_driver_node", options)
 {
+    this->declare_parameter<std::string>("config_path", (std::string)PROJECT_PATH + "/config/config.yaml");
     std::string config_path;
-    config_path = (std::string)PROJECT_PATH;
-    config_path += "/config/config.yaml";
+    this->get_parameter<std::string>("config_path", config_path);
     YAML::Node config;
     config = YAML::LoadFile(config_path);
     YAML::Node lidar_config = YamlSubNodeAbort(config, "lidar");
