@@ -164,10 +164,10 @@ inline void SourceDriver::Init(const YAML::Node& config)
 
   if (driver_param.input_param.source_type == DATA_FROM_ROS_PACKET) {
     pkt_sub_ = this->create_subscription<hesai_ros_driver::msg::UdpFrame>(driver_param.input_param.ros_recv_packet_topic, 10,
-                              std::bind(&SourceDriver::RecievePacket, this, std::placeholders::_1));
+                              std::bind(&SourceDriver::ReceivePacket, this, std::placeholders::_1));
   if (driver_param.input_param.ros_recv_correction_topic != NULL_TOPIC) {
     crt_sub_ = this->create_subscription<std_msgs::msg::UInt8MultiArray>(driver_param.input_param.ros_recv_correction_topic, 10,
-                              std::bind(&SourceDriver::RecieveCorrection, this, std::placeholders::_1));
+                              std::bind(&SourceDriver::ReceiveCorrection, this, std::placeholders::_1));
   }
     driver_param.decoder_param.enable_udp_thread = false;
   }
@@ -256,12 +256,12 @@ inline sensor_msgs::msg::PointCloud2 SourceDriver::ToRosMsg(const LidarDecodedFr
 {
   sensor_msgs::msg::PointCloud2 ros_msg;
   uint32_t points_number = (frame.fParam.IsMultiFrameFrequency() == 0) ? frame.points_num : frame.multi_points_num;
-  uint32_t packet_number = (frame.fParam.IsMultiFrameFrequency() == 0) ? frame.packet_num : frame.multi_packet_num;
+  // uint32_t packet_number = (frame.fParam.IsMultiFrameFrequency() == 0) ? frame.packet_num : frame.multi_packet_num;
   LidarPointXYZIRT *pPoints = (frame.fParam.IsMultiFrameFrequency() == 0) ? frame.points : frame.multi_points;
-  int frame_index = (frame.fParam.IsMultiFrameFrequency() == 0) ? frame.frame_index : frame.multi_frame_index;
+  // int frame_index = (frame.fParam.IsMultiFrameFrequency() == 0) ? frame.frame_index : frame.multi_frame_index;
   double frame_start_timestamp = (frame.fParam.IsMultiFrameFrequency() == 0) ? frame.frame_start_timestamp : frame.multi_frame_start_timestamp;
-  double frame_end_timestamp = (frame.fParam.IsMultiFrameFrequency() == 0) ? frame.frame_end_timestamp : frame.multi_frame_end_timestamp;
-  const char *prefix = (frame.fParam.IsMultiFrameFrequency() == 0) ? "raw" : "multi";
+  // double frame_end_timestamp = (frame.fParam.IsMultiFrameFrequency() == 0) ? frame.frame_end_timestamp : frame.multi_frame_end_timestamp;
+  // const char *prefix = (frame.fParam.IsMultiFrameFrequency() == 0) ? "raw" : "multi";
   int fields = 6;
   ros_msg.fields.clear();
   ros_msg.fields.reserve(fields);
