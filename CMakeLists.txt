@@ -282,13 +282,9 @@ if($ENV{ROS_VERSION} MATCHES "2")
     rosidl_target_interfaces(hesai_ros_driver_component  ${PROJECT_NAME} "rosidl_typesupport_cpp")
   endif()
 
-  ament_export_targets(export_hesai_ros_driver_component)
-  install(TARGETS hesai_ros_driver_component
-          EXPORT export_hesai_ros_driver_component
-          ARCHIVE DESTINATION lib
-          LIBRARY DESTINATION lib
-          RUNTIME DESTINATION bin
-  )
+  install(TARGETS
+    hesai_ros_driver_node
+    DESTINATION lib/${PROJECT_NAME})
 
   install(TARGETS
           ${LIB_TARGETS}

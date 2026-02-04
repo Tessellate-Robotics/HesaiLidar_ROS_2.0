@@ -136,6 +136,9 @@ inline void SourceDriver::Init(const YAML::Node& config)
   if (driver_param.input_param.send_point_cloud_ros) {
     pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(driver_param.input_param.ros_send_point_topic, 10);
   }
+  if (driver_param.input_param.send_imu_ros) {
+    imu_pub_ = this->create_publisher<sensor_msgs::msg::Imu>(driver_param.input_param.ros_send_imu_topic, 10);
+  }
 
   if (driver_param.input_param.ros_send_packet_loss_topic != NULL_TOPIC) {
     loss_pub_ = this->create_publisher<hesai_ros_driver::msg::LossPacket>(driver_param.input_param.ros_send_packet_loss_topic, 10);
@@ -156,7 +159,7 @@ inline void SourceDriver::Init(const YAML::Node& config)
     }
   }
 
-  if (driver_param.input_param.send_packet_ros && driver_param.input_param.source_type != DATA_FROM_ROS_PACKET) {
+  if (driver_param.input_param.send_packet_ros) {
     pkt_pub_ = this->create_publisher<hesai_ros_driver::msg::UdpFrame>(driver_param.input_param.ros_send_packet_topic, 10);
   }
 
@@ -184,6 +187,14 @@ inline void SourceDriver::Init(const YAML::Node& config)
   }
   if (driver_param.input_param.ros_send_packet_loss_topic != NULL_TOPIC) {
     driver_ptr_->RegRecvCallback(std::bind(&SourceDriver::SendPacketLoss, this, std::placeholders::_1, std::placeholders::_2));
+  }
+  if (driver_param.input_param.source_type == DATA_FROM_LIDAR) {
+    if (driver_param.input_param.ros_send_correction_topic != NULL_TOPIC) {
+      driver_ptr_->RegRecvCallback(std::bind(&SourceDriver::SendCorrection, this, std::placeholders::_1));
+    }
+    if (driver_param.input_param.ros_send_ptp_topic != NULL_TOPIC) {
+      driver_ptr_->RegRecvCallback(std::bind(&SourceDriver::SendPTP, this, std::placeholders::_1, std::placeholders::_2));
+    }
   }
   if (driver_param.input_param.source_type == DATA_FROM_LIDAR) {
     if (driver_param.input_param.ros_send_correction_topic != NULL_TOPIC) {
