@@ -86,24 +86,30 @@ find_package(Boost REQUIRED COMPONENTS thread)
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
-set(LIB_TARGETS 
-    hesai_sdk_lib
-    log_lib
-    lidar_lib
-    ptcClient_lib
-    source_lib
-    platutils_lib
-    serialClient_lib
-    udpParser_lib
-    )
-
 add_library(hesai_ros_driver_component SHARED
   node/hesai_ros_driver_node.cc
-  )
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Lidar/lidar.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/UdpParser/udp_parser.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcClient/src/ptc_client.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcClient/src/tcp_client.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcClient/src/tcp_ssl_client.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcParser/src/general_ptc_parser.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcParser/src/ptc_1_0_parser.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcParser/src/ptc_2_0_parser.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcParser/ptc_parser.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Source/src/source.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Source/src/socket_source.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Source/src/pcap_source.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Source/src/serial_source.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Source/src/pcap_saver.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Source/src/tcp_source.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/SerialClient/src/serial_client.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Logger/src/logger.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Common/src/plat_utils.cc
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Common/src/auto_tick_count.cc
+)
 target_link_libraries(hesai_ros_driver_component                   
-            ${YAML_CPP_LIBRARIES}
-            ${Boost_LIBRARIES}
-            ${LIB_TARGETS}
+  ${YAML_CPP_LIBRARIES}
 )  
 rclcpp_components_register_node(
   hesai_ros_driver_component
@@ -112,12 +118,34 @@ rclcpp_components_register_node(
 )          
 
 target_include_directories(hesai_ros_driver_component PRIVATE
+  src/driver/HesaiLidar_SDK_2.0/
+  src/driver/HesaiLidar_SDK_2.0/libhesai
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Lidar
+  src/driver/HesaiLidar_SDK_2.0/libhesai/UdpParser
+  src/driver/HesaiLidar_SDK_2.0/libhesai/UdpParser/include
+  src/driver/HesaiLidar_SDK_2.0/libhesai/UdpParser/src
+  src/driver/HesaiLidar_SDK_2.0/libhesai/UdpProtocol
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Source/include
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Container/include
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Container/src
+  src/driver/HesaiLidar_SDK_2.0/libhesai/UdpParserGpu
+  src/driver/HesaiLidar_SDK_2.0/libhesai/UdpParserGpu/include
+  src/driver/HesaiLidar_SDK_2.0/libhesai/UdpParserGpu/src
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcClient/include
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcParser/include
+  src/driver/HesaiLidar_SDK_2.0/libhesai/PtcParser
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Logger/include
+  src/driver/HesaiLidar_SDK_2.0/libhesai/include
+  src/driver/HesaiLidar_SDK_2.0/libhesai/SerialClient/include
+  src/driver/HesaiLidar_SDK_2.0/libhesai/Common/include
+  src/driver/HesaiLidar_SDK_2.0/driver
+  src/driver/HesaiLidar_SDK_2.0/algorithm
   src/manager
   src/msg/ros_msg
   src/msg/rs_msg
   src/utility
   ${CMAKE_CURRENT_BINARY_DIR}
-)  
+)
 
 find_package(ament_index_cpp REQUIRED)
 ament_target_dependencies(hesai_ros_driver_component
@@ -132,8 +160,16 @@ ament_target_dependencies(hesai_ros_driver_component
 rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
 target_link_libraries(hesai_ros_driver_component "${cpp_typesupport_target}")
 
+ament_export_targets(export_hesai_ros_driver_component)
+install(TARGETS hesai_ros_driver_component ${LIB_TARGETS}
+        EXPORT export_hesai_ros_driver_component
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
+)
+
 install(TARGETS
-  hesai_ros_driver_component
+  hesai_ros_driver_node
   DESTINATION lib/${PROJECT_NAME})
 install(TARGETS
         ${LIB_TARGETS}
