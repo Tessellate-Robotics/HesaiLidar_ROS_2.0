@@ -186,25 +186,20 @@ set(LIB_TARGETS
     udpParser_lib
     )
 
-if(${CUDA_FOUND})
-  add_executable(hesai_ros_driver_node
-    node/hesai_ros_driver_node.cu
-    src/manager/node_manager.cc
-    )
-  set(LIB_TARGETS
-    ${LIB_TARGETS}
-    udpParserGpu_lib
-    )
-else()
-  add_executable(hesai_ros_driver_node
-    node/hesai_ros_driver_node.cc
-    src/manager/node_manager.cc
-    )
-endif()
-target_link_libraries(hesai_ros_driver_node
+add_library(hesai_ros_driver_component SHARED
+  node/hesai_ros_driver_node.cc
+  src/manager/node_manager.cc
+  )
+target_link_libraries(hesai_ros_driver_component
             ${YAML_CPP_LIBRARIES}
             ${Boost_LIBRARIES}
             ${LIB_TARGETS}
+)
+
+rclcpp_components_register_node(
+  hesai_ros_driver_component
+  PLUGIN "SourceDriver"
+  EXECUTABLE hesai_ros_driver_node
 )
 
 target_include_directories(hesai_ros_driver_node PRIVATE
@@ -215,90 +210,101 @@ target_include_directories(hesai_ros_driver_node PRIVATE
   ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-#Ros#
-if($ENV{ROS_VERSION} MATCHES "1")
-  target_link_libraries(hesai_ros_driver_node ${ROS_LIBS})
-  # Catkin only supports installing targets declared in this CMakeLists.txt.
-  # SDK libraries are defined in the SDK subdirectory and are already linked
-  # into hesai_ros_driver_node, so install only the node target here.
-  install(TARGETS hesai_ros_driver_node
-          RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-          LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-          ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
-  install(DIRECTORY
-          launch
-          rviz
-          config
-          DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
-endif($ENV{ROS_VERSION} MATCHES "1")
+find_package(ament_index_cpp REQUIRED)
+ament_target_dependencies(hesai_ros_driver_component
+  ament_index_cpp
+  rcl_interfaces
+  rclcpp
+  rclcpp_components
+  rcutils
+  std_msgs
+  sensor_msgs
+)
+
+ament_export_targets(export_hesai_ros_driver_component)
+install(TARGETS hesai_ros_driver_component ${LIB_TARGETS}
+        EXPORT export_hesai_ros_driver_component
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
+)
+
+install(TARGETS
+  hesai_ros_driver_node
+  DESTINATION lib/${PROJECT_NAME})
+install(TARGETS
+        ${LIB_TARGETS}
+        DESTINATION lib)
+
+install(DIRECTORY
+        launch
+        rviz
+        DESTINATION share/${PROJECT_NAME})
+
+ament_package()
 
 
-#Ros2#
+find_package(ament_index_cpp REQUIRED)
+set(ROS2_TARGET_DEPENDENCIES
+  ament_index_cpp
+  rcl_interfaces
+  rclcpp
+  rcutils
+  std_msgs
+  sensor_msgs
+)
 
-if($ENV{ROS_VERSION} MATCHES "2")
-  find_package(ament_index_cpp REQUIRED)
-  set(ROS2_TARGET_DEPENDENCIES
-    ament_index_cpp
-    rcl_interfaces
-    rclcpp
-    rcutils
-    std_msgs
-    sensor_msgs
+if(COMMAND ament_target_dependencies)
+  ament_target_dependencies(hesai_ros_driver_node
+    ${ROS2_TARGET_DEPENDENCIES}
+    rclcpp_action
+    # tf2_geometry_msgs
   )
-
-  if(COMMAND ament_target_dependencies)
-    ament_target_dependencies(hesai_ros_driver_node
-      ${ROS2_TARGET_DEPENDENCIES}
-      rclcpp_action
-      # tf2_geometry_msgs
-    )
-  else()
-    foreach(dependency IN LISTS ROS2_TARGET_DEPENDENCIES)
-      if(DEFINED ${dependency}_TARGETS AND NOT "${${dependency}_TARGETS}" STREQUAL "")
-        target_link_libraries(hesai_ros_driver_node ${${dependency}_TARGETS})
-      elseif(TARGET ${dependency}::${dependency})
-        target_link_libraries(hesai_ros_driver_node ${dependency}::${dependency})
-      elseif(DEFINED ${dependency}_LIBRARIES AND NOT "${${dependency}_LIBRARIES}" STREQUAL "")
-        target_link_libraries(hesai_ros_driver_node ${${dependency}_LIBRARIES})
-      endif()
-
-      if(DEFINED ${dependency}_INCLUDE_DIRS AND NOT "${${dependency}_INCLUDE_DIRS}" STREQUAL "")
-        target_include_directories(hesai_ros_driver_node PUBLIC ${${dependency}_INCLUDE_DIRS})
-      endif()
-    endforeach()
-
-    if(DEFINED rclcpp_action_TARGETS AND NOT "${rclcpp_action_TARGETS}" STREQUAL "")
-      target_link_libraries(hesai_ros_driver_node ${rclcpp_action_TARGETS})
-    elseif(TARGET rclcpp_action::rclcpp_action)
-      target_link_libraries(hesai_ros_driver_node rclcpp_action::rclcpp_action)
-    elseif(DEFINED rclcpp_action_LIBRARIES AND NOT "${rclcpp_action_LIBRARIES}" STREQUAL "")
-      target_link_libraries(hesai_ros_driver_node ${rclcpp_action_LIBRARIES})
+else()
+  foreach(dependency IN LISTS ROS2_TARGET_DEPENDENCIES)
+    if(DEFINED ${dependency}_TARGETS AND NOT "${${dependency}_TARGETS}" STREQUAL "")
+      target_link_libraries(hesai_ros_driver_node ${${dependency}_TARGETS})
+    elseif(TARGET ${dependency}::${dependency})
+      target_link_libraries(hesai_ros_driver_node ${dependency}::${dependency})
+    elseif(DEFINED ${dependency}_LIBRARIES AND NOT "${${dependency}_LIBRARIES}" STREQUAL "")
+      target_link_libraries(hesai_ros_driver_node ${${dependency}_LIBRARIES})
     endif()
 
-    if(DEFINED rclcpp_action_INCLUDE_DIRS AND NOT "${rclcpp_action_INCLUDE_DIRS}" STREQUAL "")
-      target_include_directories(hesai_ros_driver_node PUBLIC ${rclcpp_action_INCLUDE_DIRS})
+    if(DEFINED ${dependency}_INCLUDE_DIRS AND NOT "${${dependency}_INCLUDE_DIRS}" STREQUAL "")
+      target_include_directories(hesai_ros_driver_node PUBLIC ${${dependency}_INCLUDE_DIRS})
     endif()
+  endforeach()
+
+  if(DEFINED rclcpp_action_TARGETS AND NOT "${rclcpp_action_TARGETS}" STREQUAL "")
+    target_link_libraries(hesai_ros_driver_node ${rclcpp_action_TARGETS})
+  elseif(TARGET rclcpp_action::rclcpp_action)
+    target_link_libraries(hesai_ros_driver_node rclcpp_action::rclcpp_action)
+  elseif(DEFINED rclcpp_action_LIBRARIES AND NOT "${rclcpp_action_LIBRARIES}" STREQUAL "")
+    target_link_libraries(hesai_ros_driver_node ${rclcpp_action_LIBRARIES})
   endif()
 
-if(COMMAND rosidl_get_typesupport_target)
-  rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
-  target_link_libraries(hesai_ros_driver_node "${cpp_typesupport_target}")
-else()
-  rosidl_target_interfaces(hesai_ros_driver_node  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+  if(DEFINED rclcpp_action_INCLUDE_DIRS AND NOT "${rclcpp_action_INCLUDE_DIRS}" STREQUAL "")
+    target_include_directories(hesai_ros_driver_node PUBLIC ${rclcpp_action_INCLUDE_DIRS})
+  endif()
 endif()
 
-  install(TARGETS
-          hesai_ros_driver_node
-          DESTINATION lib/${PROJECT_NAME})
-  install(TARGETS
-          ${LIB_TARGETS}
-          DESTINATION lib)
+if(COMMAND rosidl_get_typesupport_target)
+rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
+target_link_libraries(hesai_ros_driver_node "${cpp_typesupport_target}")
+else()
+rosidl_target_interfaces(hesai_ros_driver_node  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+endif()
 
-  install(DIRECTORY
-          launch
-          rviz
-          DESTINATION share/${PROJECT_NAME})
+install(TARGETS
+        hesai_ros_driver_node
+        DESTINATION lib/${PROJECT_NAME})
+install(TARGETS
+        ${LIB_TARGETS}
+        DESTINATION lib)
 
-  ament_package()
+install(DIRECTORY
+        launch
+        rviz
+        DESTINATION share/${PROJECT_NAME})
 
-endif($ENV{ROS_VERSION} MATCHES "2")
+ament_package()
