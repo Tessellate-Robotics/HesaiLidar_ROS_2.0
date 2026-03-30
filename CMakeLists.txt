@@ -76,85 +76,24 @@ add_compile_options(-Wall)
 #========================
 
 #ROS#
-#Catkin#
-if($ENV{ROS_VERSION} MATCHES "1")
-  find_package(roscpp 1.12 QUIET)
-  find_package(roslib QUIET)
-  include_directories(${roscpp_INCLUDE_DIRS} ${roslib_INCLUDE_DIRS})
-  set(ROS_LIBS ${roscpp_LIBRARIES} ${roslib_LIBRARIES})
-  add_definitions(-DROS_FOUND)
-  add_definitions(-DRUN_IN_ROS_WORKSPACE)
+find_package(ament_cmake REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(rclcpp_action REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+find_package(builtin_interfaces REQUIRED)
+find_package(rclcpp_components REQUIRED)
 
-  find_package(catkin REQUIRED COMPONENTS
-    roscpp
-    sensor_msgs
-    std_msgs
-    message_generation
-    roslib)
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/msg_ros2/UdpPacket.msg"
+  "msg/msg_ros2/UdpFrame.msg"
+  "msg/msg_ros2/Firetime.msg"
+  "msg/msg_ros2/Ptp.msg"
+  "msg/msg_ros2/LossPacket.msg"
+  DEPENDENCIES builtin_interfaces std_msgs
+)
+ament_export_dependencies(rosidl_default_runtime)
 
-  add_message_files(
-    FILES
-    "UdpPacket.msg"
-    "UdpFrame.msg"
-    "LossPacket.msg"
-    "Ptp.msg"
-    "Firetime.msg"
-  )
-
-  generate_messages(
-    DEPENDENCIES
-    std_msgs
-  )
-
-
-  catkin_package(CATKIN_DEPENDS
-    sensor_msgs
-    roslib)
-
-endif($ENV{ROS_VERSION} MATCHES "1")
-
-#ROS2#
-if($ENV{ROS_VERSION} MATCHES "2")
-
-  find_package(rclcpp QUIET)
-  if(rclcpp_FOUND)
-
-    message(=============================================================)
-    message("-- ROS2 Found. ROS2 Support is turned On.")
-    message(=============================================================)
-
-    add_definitions(-DROS2_FOUND)
-    include_directories(${rclcpp_INCLUDE_DIRS})
-    find_package(ament_cmake REQUIRED)
-    find_package(sensor_msgs REQUIRED)
-    find_package(std_msgs REQUIRED)
-    find_package(rcutils REQUIRED)
-    find_package(rcl_interfaces REQUIRED)
-    find_package(rclcpp_action REQUIRED)
-    find_package(rosidl_typesupport_c REQUIRED)
-    find_package(rosidl_default_generators REQUIRED)
-    find_package(builtin_interfaces REQUIRED)
-    find_package(std_msgs REQUIRED)
-    find_package(rclcpp_components REQUIRED)
-
-    rosidl_generate_interfaces(${PROJECT_NAME}
-      "msg/msg_ros2/UdpPacket.msg"
-      "msg/msg_ros2/UdpFrame.msg"
-      "msg/msg_ros2/Firetime.msg"
-      "msg/msg_ros2/Ptp.msg"
-      "msg/msg_ros2/LossPacket.msg"
-      DEPENDENCIES builtin_interfaces std_msgs
-    )
-    ament_export_dependencies(rosidl_default_runtime)
-
-  else(rclcpp_FOUND)
-
-    message(=============================================================)
-    message("-- ROS2 Not Found. ROS2 Support is turned Off.")
-    message(=============================================================)
-
-  endif(rclcpp_FOUND )
-endif($ENV{ROS_VERSION} MATCHES "2")
 
 
 #Others#
@@ -232,72 +171,6 @@ install(TARGETS hesai_ros_driver_component ${LIB_TARGETS}
 install(TARGETS
   hesai_ros_driver_node
   DESTINATION lib/${PROJECT_NAME})
-install(TARGETS
-        ${LIB_TARGETS}
-        DESTINATION lib)
-
-install(DIRECTORY
-        launch
-        rviz
-        DESTINATION share/${PROJECT_NAME})
-
-ament_package()
-
-
-find_package(ament_index_cpp REQUIRED)
-set(ROS2_TARGET_DEPENDENCIES
-  ament_index_cpp
-  rcl_interfaces
-  rclcpp
-  rcutils
-  std_msgs
-  sensor_msgs
-)
-
-if(COMMAND ament_target_dependencies)
-  ament_target_dependencies(hesai_ros_driver_node
-    ${ROS2_TARGET_DEPENDENCIES}
-    rclcpp_action
-    # tf2_geometry_msgs
-  )
-else()
-  foreach(dependency IN LISTS ROS2_TARGET_DEPENDENCIES)
-    if(DEFINED ${dependency}_TARGETS AND NOT "${${dependency}_TARGETS}" STREQUAL "")
-      target_link_libraries(hesai_ros_driver_node ${${dependency}_TARGETS})
-    elseif(TARGET ${dependency}::${dependency})
-      target_link_libraries(hesai_ros_driver_node ${dependency}::${dependency})
-    elseif(DEFINED ${dependency}_LIBRARIES AND NOT "${${dependency}_LIBRARIES}" STREQUAL "")
-      target_link_libraries(hesai_ros_driver_node ${${dependency}_LIBRARIES})
-    endif()
-
-    if(DEFINED ${dependency}_INCLUDE_DIRS AND NOT "${${dependency}_INCLUDE_DIRS}" STREQUAL "")
-      target_include_directories(hesai_ros_driver_node PUBLIC ${${dependency}_INCLUDE_DIRS})
-    endif()
-  endforeach()
-
-  if(DEFINED rclcpp_action_TARGETS AND NOT "${rclcpp_action_TARGETS}" STREQUAL "")
-    target_link_libraries(hesai_ros_driver_node ${rclcpp_action_TARGETS})
-  elseif(TARGET rclcpp_action::rclcpp_action)
-    target_link_libraries(hesai_ros_driver_node rclcpp_action::rclcpp_action)
-  elseif(DEFINED rclcpp_action_LIBRARIES AND NOT "${rclcpp_action_LIBRARIES}" STREQUAL "")
-    target_link_libraries(hesai_ros_driver_node ${rclcpp_action_LIBRARIES})
-  endif()
-
-  if(DEFINED rclcpp_action_INCLUDE_DIRS AND NOT "${rclcpp_action_INCLUDE_DIRS}" STREQUAL "")
-    target_include_directories(hesai_ros_driver_node PUBLIC ${rclcpp_action_INCLUDE_DIRS})
-  endif()
-endif()
-
-if(COMMAND rosidl_get_typesupport_target)
-rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
-target_link_libraries(hesai_ros_driver_node "${cpp_typesupport_target}")
-else()
-rosidl_target_interfaces(hesai_ros_driver_node  ${PROJECT_NAME} "rosidl_typesupport_cpp")
-endif()
-
-install(TARGETS
-        hesai_ros_driver_node
-        DESTINATION lib/${PROJECT_NAME})
 install(TARGETS
         ${LIB_TARGETS}
         DESTINATION lib)
