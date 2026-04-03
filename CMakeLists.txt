@@ -14,38 +14,11 @@ configure_file(
 )
 
 set(WITH_PTCS_USE ON CACHE BOOL "Use Ptcs")
-# set(FIND_CUDA ON CACHE BOOL "Find CUDA")
-
-if(FIND_CUDA)
-    find_package(CUDA )
-endif()
-if(${CUDA_FOUND})
-  	project(CommonModules LANGUAGES CXX CUDA)
-	set(CUDA_SOURCE_PROPERTY_FORMAT OBJ)
-	set(CUDA_SEPARABLE_COMPILATION ON)
-	include_directories(${CUDA_INCLUDE_DIRS})
-	set(CUDA_PROPAGATE_HOST_FLAGS OFF)
-	set(CUDA_NVCC_FLAGS -arch=sm_61;-O3;-G;-g;)#根据具体GPU性能更改算力参数
-	link_directories($ENV{CUDA_PATH}/lib/x64)
-
-  add_definitions(-DUSE_CUDA)
-  set(FIND_CUDA ON CACHE BOOL "Use Cuda")
-else(${CUDA_FOUND})
-	MESSAGE(STATUS "cuda not found!")
-endif(${CUDA_FOUND})
 
 #=======================================
 # Custom Point Type (XYZI, XYZIRT)
 #=======================================
 set(POINT_TYPE XYZI)
-
-#=======================================
-# Compile setup (ORIGINAL, CATKIN, COLCON)
-#=======================================
-message(=============================================================)
-message("-- ROS_VERSION is $ENV{ROS_VERSION}")
-message(=============================================================)
-
 
 #========================
 # Project details / setup
@@ -76,6 +49,9 @@ add_compile_options(-Wall)
 #========================
 
 #ROS#
+add_definitions(-DROS2_FOUND)
+
+find_package(rclcpp REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -83,6 +59,9 @@ find_package(rclcpp_action REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(ament_index_cpp REQUIRED)
+find_package(rcl_interfaces REQUIRED)
+find_package(rcutils REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/msg_ros2/UdpPacket.msg"
@@ -127,9 +106,8 @@ set(LIB_TARGETS
 
 add_library(hesai_ros_driver_component SHARED
   node/hesai_ros_driver_node.cc
-  src/manager/node_manager.cc
-  )
-target_link_libraries(hesai_ros_driver_component
+)
+target_link_libraries(hesai_ros_driver_component PRIVATE
             ${YAML_CPP_LIBRARIES}
             ${Boost_LIBRARIES}
             ${LIB_TARGETS}
@@ -141,7 +119,7 @@ rclcpp_components_register_node(
   EXECUTABLE hesai_ros_driver_node
 )
 
-target_include_directories(hesai_ros_driver_node PRIVATE
+target_include_directories(hesai_ros_driver_component PRIVATE
   src/manager
   src/msg/ros_msg
   src/msg/rs_msg
@@ -149,20 +127,19 @@ target_include_directories(hesai_ros_driver_node PRIVATE
   ${CMAKE_CURRENT_BINARY_DIR}
 )
 
-find_package(ament_index_cpp REQUIRED)
-ament_target_dependencies(hesai_ros_driver_component
-  ament_index_cpp
-  rcl_interfaces
-  rclcpp
-  rclcpp_components
-  rcutils
-  std_msgs
-  sensor_msgs
+rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
+target_link_libraries(hesai_ros_driver_component PUBLIC
+  ament_index_cpp::ament_index_cpp
+  ${rcl_interfaces_TARGETS}
+  rclcpp::rclcpp
+  rclcpp_components::component
+  ${rcutils_TARGETS}
+  ${std_msgs_TARGETS}
+  ${sensor_msgs_TARGETS}
+  "${cpp_typesupport_target}"
 )
 
-ament_export_targets(export_hesai_ros_driver_component)
-install(TARGETS hesai_ros_driver_component ${LIB_TARGETS}
-        EXPORT export_hesai_ros_driver_component
+install(TARGETS hesai_ros_driver_component
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         RUNTIME DESTINATION bin
@@ -171,9 +148,6 @@ install(TARGETS hesai_ros_driver_component ${LIB_TARGETS}
 install(TARGETS
   hesai_ros_driver_node
   DESTINATION lib/${PROJECT_NAME})
-install(TARGETS
-        ${LIB_TARGETS}
-        DESTINATION lib)
 
 install(DIRECTORY
         launch
