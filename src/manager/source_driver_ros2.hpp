@@ -45,6 +45,8 @@
 #include <chrono>
 #include <string>
 #include <functional>
+#include <thread>
+#include <atomic>
 #include <boost/thread.hpp>
 #include "source_drive_common.hpp"
 
@@ -112,6 +114,10 @@ protected:
   rclcpp::Publisher<hesai_ros_driver::msg::LossPacket>::SharedPtr loss_pub_;
   rclcpp::Publisher<hesai_ros_driver::msg::Ptp>::SharedPtr ptp_pub_;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_pub_;
+
+  rclcpp::TimerBase::SharedPtr init_timer_;
+  std::thread start_thread_;
+  std::atomic<bool> shutting_down_{false};
 };
 
 inline SourceDriver::SourceDriver(const rclcpp::NodeOptions & options) : Node("hesai_ros_driver_node", options)
@@ -123,7 +129,13 @@ inline SourceDriver::SourceDriver(const rclcpp::NodeOptions & options) : Node("h
     config = YAML::LoadFile(config_path);
     YAML::Node lidar_config = YamlSubNodeAbort(config, "lidar");
     Init(lidar_config[0]);
-    Start();
+    init_timer_ = this->create_wall_timer(std::chrono::milliseconds(0), [this]() {
+      init_timer_->cancel();
+      if (shutting_down_) {
+        return;
+      }
+      start_thread_ = std::thread([this]() { this->Start(); });
+    });
 }
 
 inline void SourceDriver::Init(const YAML::Node& config)
@@ -218,7 +230,14 @@ inline void SourceDriver::Start()
 
 inline SourceDriver::~SourceDriver()
 {
+  shutting_down_ = true;
+  if (init_timer_) {
+    init_timer_->cancel();
+  }
   Stop();
+  if (start_thread_.joinable()) {
+    start_thread_.join();
+  }
 }
 
 inline void SourceDriver::Stop()
