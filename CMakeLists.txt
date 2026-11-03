@@ -82,8 +82,13 @@ find_package(yaml-cpp REQUIRED)
 include_directories(${PROJECT_SOURCE_DIR}/src)
 
 #Driver core#
+# The SDK libraries are not installed, so build them static (and PIC) to embed them in the
+# component; as shared libraries they would only resolve through the build-tree RPATH.
 set(DISENABLE_TEST_CC ON CACHE BOOL "DISENABLE_TEST_CC")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(src/driver/HesaiLidar_SDK_2.0)
+unset(BUILD_SHARED_LIBS)
 
 #========================
 # Build Setup
